@@ -1,21 +1,24 @@
-<<<<<<< HEAD
-# MQTT
-Java实现MQTT通信
-=======
-## springboot 实现 mqtt 客户端
+package com.ioufev.mqtt.mqtt;
 
-### 接收消息
+import org.eclipse.paho.client.mqttv3.MqttConnectOptions;
+import org.springframework.context.annotation.Bean;
+import org.springframework.context.annotation.Configuration;
+import org.springframework.integration.annotation.ServiceActivator;
+import org.springframework.integration.channel.DirectChannel;
+import org.springframework.integration.core.MessageProducer;
+import org.springframework.integration.mqtt.core.DefaultMqttPahoClientFactory;
+import org.springframework.integration.mqtt.core.MqttPahoClientFactory;
+import org.springframework.integration.mqtt.inbound.MqttPahoMessageDrivenChannelAdapter;
+import org.springframework.integration.mqtt.outbound.MqttPahoMessageHandler;
+import org.springframework.integration.mqtt.support.DefaultPahoMessageConverter;
+import org.springframework.messaging.MessageChannel;
+import org.springframework.messaging.MessageHandler;
 
-先配置连接
+@Configuration
+public class MqttConfig {
 
-然后订阅主题
+    // 消费消息
 
-可以设置接收消息的内容格式：是否是字节
-
-收到订阅的主题消息后，对应主题写响应处理
-
-
-```java
     /**
      * 创建MqttPahoClientFactory，设置MQTT Broker连接属性，如果使用SSL验证，也在这里设置。
      * @return factory
@@ -41,7 +44,7 @@ Java实现MQTT通信
     }
 
     /**
-     * 入站
+     * 入站：接收消息
      */
     @Bean
     public MessageProducer inbound() {
@@ -52,7 +55,7 @@ Java实现MQTT通信
 
         // Paho消息转换器
         DefaultPahoMessageConverter defaultPahoMessageConverter = new DefaultPahoMessageConverter();
-        // 按字节接收消息
+        // 按字节接收消息,如果是纯文本不需要设置
 //        defaultPahoMessageConverter.setPayloadAsBytes(true);
         adapter.setConverter(defaultPahoMessageConverter);
         adapter.setQos(1); // 设置QoS
@@ -70,7 +73,7 @@ Java实现MQTT通信
             // byte[] bytes = (byte[]) message.getPayload(); // 收到的消息是字节格式
             String topic = message.getHeaders().get("mqtt_receivedTopic").toString();
 
-            // 根据主题分别进行消息处理。
+            // 根据主题topic分别进行消息处理。
             if (topic.matches(".+/sensor")) { // 匹配：1/sensor
                 String sensorSn = topic.split("/")[0];
                 System.out.println("传感器" + sensorSn + ": 的消息： " + payload);
@@ -82,20 +85,10 @@ Java实现MQTT通信
 
         };
     }
-```
 
-### 发送消息
+    // 发送消息
 
-先配置连接，使用相同的工厂类MqttPahoClientFactory，因为都是连接相同的Broker。
-
-可以设置发送消息的内容格式：是否是字节
-
-然后是供使用的MqttGateway接口
-
-MqttConfig类
-
-```java
-/**
+    /**
      * 出站通道
      */
     @Bean
@@ -104,7 +97,7 @@ MqttConfig类
     }
 
     /**
-     * 出站
+     * 出站：发送消息
      */
     @Bean
     @ServiceActivator(inputChannel = "mqttOutboundChannel")
@@ -123,59 +116,5 @@ MqttConfig类
         messageHandler.setConverter(defaultPahoMessageConverter);
         return messageHandler;
     }
-```
 
-MqttGateway接口
-
-```java
-import org.springframework.integration.annotation.MessagingGateway;
-import org.springframework.integration.mqtt.support.MqttHeaders;
-import org.springframework.messaging.handler.annotation.Header;
-
-@MessagingGateway(defaultRequestChannel = "mqttOutboundChannel")
-public interface MqttGateway {
-    // 定义重载方法，用于消息发送
-    void sendToMqtt(String payload);
-    // 指定topic进行消息发送
-    void sendToMqtt(@Header(MqttHeaders.TOPIC) String topic, String payload);
-    void sendToMqtt(@Header(MqttHeaders.TOPIC) String topic, @Header(MqttHeaders.QOS) int qos, String payload);
-    void sendToMqtt(@Header(MqttHeaders.TOPIC) String topic, @Header(MqttHeaders.QOS) int qos, byte[] payload);
 }
-```
-
-
-使用 MqttGateway接口
-
-
-
-```java
-
-    @Resource
-    private MqttGateway mqttGateway;
-
-    mqttGateway.sendToMqtt("主题", 1, "内容");
-
-```
-
-注意，有些类自动装配找不到接口的相应Bean，可以使用相关工具类获取Bean。 传入`MqttGateway.class`。
-
-```java
-private MqttGateway mqttGateway = SpringUtils.getBean(MqttGateway.class);
-```
-
-### 使用的相关工具
-
-接口工具
-http://api.crap.cn/
-
-服务端：mosquitto
-下载页面：https://mosquitto.org/download/
-
-MQTTX
-下载页面：https://mqttx.app/#download
-
-MQTT.fx
-下载链接：http://www.jensd.de/apps/mqttfx/1.7.1/mqttfx-1.7.1-windows-x64.exe
-
-视频说明：https://www.bilibili.com/video/BV1qf4y1n7js/
->>>>>>> e5424a8 (first commit)
