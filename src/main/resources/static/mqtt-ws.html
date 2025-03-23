@@ -1,0 +1,95 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<!--    CDN安装mqtt.js-->
+    <meta charset="UTF-8">
+    <title>MQTT over WebSocket</title>
+    <script src="https://cdn.bootcdn.net/ajax/libs/mqtt/4.2.8/mqtt.js"></script>
+</head>
+
+<body>
+
+<div>
+    发送的内容：
+    <input id="send" type="text" style="width: 300px;height: 30px">
+    <button id="sendButton">发送</button>
+</div>
+
+<div>
+    收到的内容：
+    <input id="receive" type="text" style="width: 300px;height: 30px">
+</div>
+
+<script type="module">
+
+    const clientId = 'mqttjs_' + Math.random().toString(16).substr(2, 8)
+
+    const host = 'ws://127.0.0.1:8083/mqtt'
+    // const host = 'ws://broker.emqx.io:8083/mqtt'
+
+    const options = {
+        keepalive: 60,
+        clientId: clientId,
+        protocolId: 'MQTT',
+        protocolVersion: 4,
+        clean: true,
+        reconnectPeriod: 1000,
+        connectTimeout: 30 * 1000,
+        // 遗嘱消息，当客户端非正常断开连接时，Broker 就会向遗嘱 Topic 里面发布一条消息。
+        // will: {
+        //     topic: 'collector',
+        //     payload: '异常断开!',
+        //     qos: 0,
+        //     retain: false
+        // },
+    }
+
+    //建立连接
+    const client = mqtt.connect(host, options)
+
+    client.on('connect', () => {
+        console.log('连接状态：' + client.connected)
+    })
+
+    client.on('error', (err) => {
+        console.log('连接错误: ', err)
+        client.end()
+    })
+
+    client.on('reconnect', () => {
+        console.log('重连中...')
+    })
+
+    // 当窗口关闭时，主动去关闭连接
+    window.onbeforeunload = () => {
+        client.end();
+        return("ok");
+    }
+
+    // 订阅消息：订阅一个名为 collector QoS 为 0 的 主题
+    client.subscribe('collector', {qos: 0}, function (error, granted) {
+        if (error) {
+            console.log(error)
+        } else {
+            console.log(`已订阅主题： ${granted[0].topic}`)
+        }
+    })
+
+    // 收到消息
+    client.on('message', function (topic, payload, packet) {
+        // Payload is Buffer
+        console.log(`主题: ${topic}, 消息: ${payload.toString()}, QoS: ${packet.qos}`)
+        document.getElementById('receive').value = `主题: ${topic}, 消息: ${payload.toString()}, QoS: ${packet.qos}`;
+    })
+
+
+    // 发布消息
+    let sendButton = window.document.getElementById("sendButton");
+    sendButton.addEventListener("click", () => {
+        let message = document.getElementById('send').value;
+        client.publish('collector', message, {qos: 1, retain: false, dup: true});
+    })
+
+</script>
+</body>
+</html>

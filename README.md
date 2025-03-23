@@ -1,4 +1,3 @@
-<<<<<<< HEAD
 # MQTT
 Java实现MQTT通信
 =======
@@ -13,6 +12,8 @@ Java实现MQTT通信
 3、可以设置接收消息的内容格式：是否是字节。
 
 4、收到订阅的主题消息后，对应主题写响应处理。
+
+websocket方式访问网址：http://localhost:8080/mqtt-ws.html
 
 
 ```java
